@@ -1,0 +1,6 @@
+{
+  "name": "Sergio do Sítio - Criação Caipira",
+  "description": "Funil conversacional estilo WhatsApp para venda do guia Criação Lucrativa de Galinha Caipira.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

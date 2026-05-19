@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+@theme {
+  --color-whatsapp-bg: #0b141a;
+  --color-whatsapp-header: #202c33;
+  --color-whatsapp-bubble-bot: #202c33;
+  --color-whatsapp-bubble-user: #005c4b;
+  --color-whatsapp-green: #00a884;
+  --color-whatsapp-text-primary: #e9edef;
+  --color-whatsapp-text-secondary: #8696a0;
+  --color-whatsapp-banner-bg: #182229;
+  --color-whatsapp-banner-text: #ffd279;
+  
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    background-color: #0c1317;
+    color: var(--color-whatsapp-text-primary);
+    font-family: var(--font-sans);
+    overflow: hidden;
+  }
+}
+
+/* WhatsApp Pattern Background */
+.whatsapp-pattern {
+  background-image: url("https://static.whatsapp.net/rsrc.php/v3/y6/r/S_pA9fS07_v.png");
+  background-repeat: repeat;
+  background-size: 400px;
+  background-attachment: fixed;
+  opacity: 0.05;
+  pointer-events: none;
+}
+
+.whatsapp-shadow {
+  box-shadow: 0 1px 0.5px rgba(11, 20, 26, 0.13);
+}
+
+/* Bubbles with Tails */
+.bubble-in-tail {
+  position: relative;
+}
+
+.bubble-in-tail::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -8px;
+  width: 8px;
+  height: 13px;
+  background-color: var(--color-whatsapp-bubble-bot);
+  clip-path: polygon(100% 0, 0 0, 100% 100%);
+}
+
+.bubble-out-tail {
+  position: relative;
+}
+
+.bubble-out-tail::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: -8px;
+  width: 8px;
+  height: 13px;
+  background-color: var(--color-whatsapp-bubble-user);
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
