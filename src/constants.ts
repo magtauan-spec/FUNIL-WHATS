@@ -1,7 +1,7 @@
 import { ChatMessage } from './types';
 
 export const SERGIO_AVATAR = "https://i.imgur.com/LUKdyfA.jpeg";
-export const CHICKEN_MOCKUP = "https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?auto=format&fit=crop&q=80&w=600&h=400";
+export const CHICKEN_MOCKUP = "https://i.imgur.com/pQSQWiP.jpeg";
 export const TESTIMONIAL_IMG = "https://images.unsplash.com/photo-1560130954-43be1494879d?auto=format&fit=crop&q=80&w=200&h=200";
 
 export const CHECKOUT_URL = "COLE_AQUI_O_LINK_DO_CHECKOUT";
@@ -26,48 +26,35 @@ export const FUNNEL_STEPS: Record<string, (name: string) => ChatMessage[]> = {
     {
       id: '2',
       type: 'text',
-      content: `Show, ${name}. Vou te mostrar uma coisa simples, mas que muita gente do interior tá usando pra aproveitar melhor o quintal ou sítio.`,
+      content: `Boa, ${name}. Vamos lá… vou te explicar rapidinho como funciona.`,
       sender: 'bot',
       delay: 1500,
     },
     {
-      id: '3',
-      type: 'text',
-      content: 'Hoje tem muita gente com espaço parado, criando no chute ou querendo começar com galinha caipira, mas sem saber o primeiro passo.',
+      id: 'audio-1',
+      type: 'audio',
+      audioUrl: '/audio-1.mp3',
+      duration: '0:36',
       sender: 'bot',
-      delay: 2000,
+      delay: 1000,
     },
     {
-      id: '4',
+      id: 'desc-mockup',
       type: 'text',
-      content: 'E o problema é esse: quando começa sem direção, a pessoa gasta errado, monta galinheiro de qualquer jeito, alimenta mal as aves e depois não entende por que não tem resultado.',
+      content: 'Esse aqui é o guia completo 👇',
       sender: 'bot',
-      delay: 2500,
+      delay: 1500,
     },
     {
-      id: '5',
+      id: 'mockup',
       type: 'image',
       imageUrl: CHICKEN_MOCKUP,
       imageCaption: 'Guia Criação Lucrativa de Galinha Caipira',
       sender: 'bot',
-      delay: 1500,
+      delay: 1000,
     },
     {
-      id: '6',
-      type: 'text',
-      content: 'Foi por isso que criamos o Guia Criação Lucrativa de Galinha Caipira.',
-      sender: 'bot',
-      delay: 1500,
-    },
-    {
-      id: '7',
-      type: 'text',
-      content: 'Ele é um material simples, visual e direto, feito pra quem quer começar do zero ou organizar melhor a criação que já tem.',
-      sender: 'bot',
-      delay: 2000,
-    },
-    {
-      id: '8',
+      id: 'initial-query',
       type: 'options',
       content: 'Hoje você já cria galinha ou ainda quer começar?',
       options: [
@@ -76,26 +63,26 @@ export const FUNNEL_STEPS: Record<string, (name: string) => ChatMessage[]> = {
         { label: 'Tenho quintal ou sítio parado', value: 'espaco' },
       ],
       sender: 'bot',
-      delay: 1000,
+      delay: 1500,
     }
   ],
   afterInitialOptions: (name) => [
     {
-      id: '9',
+      id: 'after-opt',
       type: 'text',
-      content: `Perfeito, ${name}. Então esse guia pode te ajudar bastante, porque ele mostra o caminho sem enrolação.`,
+      content: `Perfeito, ${name}. Então esse material pode te ajudar bastante, porque ele mostra o caminho sem enrolação.`,
       sender: 'bot',
       delay: 1500,
     },
     {
-      id: '10',
+      id: 'learn-intro',
       type: 'text',
-      content: 'Dentro dele você aprende passo a passo:',
+      content: 'Dentro dele você aprende:',
       sender: 'bot',
       delay: 1000,
     },
     {
-      id: '11',
+      id: 'checklist-learn',
       type: 'checklist',
       items: [
         'Como montar um galinheiro simples',
@@ -109,21 +96,14 @@ export const FUNNEL_STEPS: Record<string, (name: string) => ChatMessage[]> = {
       delay: 500,
     },
     {
-      id: '12',
+      id: 'start-small',
       type: 'text',
-      content: 'E o melhor: não precisa começar grande.',
+      content: 'E não precisa começar grande. Dá pra começar pequeno, com o espaço que você já tem, e ir melhorando aos poucos.',
       sender: 'bot',
       delay: 2000,
     },
     {
-      id: '13',
-      type: 'text',
-      content: 'Muita gente acha que precisa de sítio enorme, muito dinheiro ou experiência, mas dá pra começar pequeno, com o espaço que você já tem, e ir melhorando aos poucos.',
-      sender: 'bot',
-      delay: 2500,
-    },
-    {
-      id: '14',
+      id: 'doubt-query',
       type: 'options',
       content: 'Qual dessas dúvidas mais trava você hoje?',
       options: [
@@ -133,77 +113,57 @@ export const FUNNEL_STEPS: Record<string, (name: string) => ChatMessage[]> = {
         { label: 'Não sei vender os ovos', value: 'vender' },
       ],
       sender: 'bot',
-      delay: 1000,
+      delay: 1500,
     }
   ],
   afterDoubtOptions: (name) => [
     {
-      id: '15',
+      id: 'doubt-response',
       type: 'text',
       content: 'Essa é justamente a parte que mais trava quem quer começar. Por isso o guia foi feito pra tirar você do chute.',
       sender: 'bot',
       delay: 1500,
     },
     {
-      id: '16',
+      id: 'testimonial-header',
       type: 'text',
-      content: 'Em vez de ficar vendo vídeo solto na internet e continuar perdido, você segue um passo a passo organizado, direto no celular.',
+      content: 'Olha o que algumas pessoas estão falando:',
       sender: 'bot',
-      delay: 2000,
+      delay: 1000,
     },
     {
-      id: '17',
+      id: 'testimonial-card',
       type: 'testimonial',
       name: 'João Batista',
       location: 'MG',
       content: 'Comprei achando que era só mais um material, mas me surpreendi. Eu tava perdido sem saber como começar, agora já separei o espaço do galinheiro e tô organizando minha criação aos poucos. Bem direto e fácil de entender.',
       sender: 'bot',
-      delay: 2000,
-    },
-    {
-      id: '18',
-      type: 'text',
-      content: 'É esse tipo de clareza que o material entrega: você olha pro seu espaço e começa a entender o que fazer primeiro.',
-      sender: 'bot',
-      delay: 2000,
-    },
-    {
-      id: '19',
-      type: 'options',
-      content: 'Você quer usar esse guia pra começar do jeito certo?',
-      options: [
-        { label: 'Sim, quero começar certo', value: 'sim_começar' },
-        { label: 'Quero entender o que recebo', value: 'estou_vendo' },
-      ],
-      sender: 'bot',
       delay: 1000,
-    }
-  ],
-  offer: (name) => [
-    {
-      id: '21',
-      type: 'text',
-      content: 'Hoje o acesso completo ao Guia Criação Lucrativa de Galinha Caipira está saindo por apenas:',
-      sender: 'bot',
-      delay: 1500,
     },
     {
-      id: '22',
-      type: 'price',
-      price: 'R$27,00',
-      content: 'Pagamento único. Acesso imediato. Material digital.',
+      id: 'before-audio-2',
+      type: 'text',
+      content: 'Antes de te passar o acesso, escuta isso aqui rapidinho 👇',
+      sender: 'bot',
+      delay: 2000,
+    },
+    {
+      id: 'audio-2',
+      type: 'audio',
+      audioUrl: '/audio-2.mp3',
+      duration: '0:22',
       sender: 'bot',
       delay: 1000,
     },
     {
-      id: '24',
+      id: 'after-audio-2',
       type: 'text',
-      content: 'E comprando agora, você também leva bônus pra começar com mais segurança:',
+      content: 'Você recebe o guia principal + os bônus e pode acessar pelo celular, computador ou imprimir.',
       sender: 'bot',
       delay: 2000,
     },
     {
-      id: '25',
+      id: 'bonus-checklist',
       type: 'bonus',
       items: [
         'Guia de Ração Caseira',
@@ -212,42 +172,45 @@ export const FUNNEL_STEPS: Record<string, (name: string) => ChatMessage[]> = {
         'Estratégia Para Vender Ovos'
       ],
       sender: 'bot',
-      delay: 500,
+      delay: 1000,
     },
     {
-      id: '26',
+      id: 'price-intro',
       type: 'text',
-      content: 'Tudo isso pra você não começar no escuro, não gastar dinheiro à toa e não depender de tentativa e erro.',
+      content: 'Hoje o acesso completo está saindo por apenas:',
       sender: 'bot',
       delay: 2000,
     },
     {
-      id: '27',
-      type: 'text',
-      content: 'Essa condição promocional pode sair do ar a qualquer momento. Se você quer começar sua criação do jeito certo, essa é a hora.',
-      sender: 'bot',
-      delay: 2500,
-    },
-    {
-      id: '28',
-      type: 'options',
-      content: `${name}, você quer acessar o guia agora?`,
-      options: [
-        { label: 'Sim, quero acessar agora', value: 'checkout' },
-        { label: 'Quero garantir meu acesso', value: 'checkout' },
-      ],
-      sender: 'bot',
-      delay: 1500,
-    },
-    {
-      id: '29',
-      type: 'text',
-      content: 'Perfeito. Clique no botão abaixo e finalize seu acesso com segurança. Assim que confirmar o pagamento, você recebe o material no seu e-mail.',
+      id: 'price-card',
+      type: 'price',
+      price: 'R$27,00',
+      content: 'Pagamento único. Acesso imediato. Material digital.',
       sender: 'bot',
       delay: 1000,
     },
     {
-      id: '30',
+      id: 'final-query',
+      type: 'options',
+      content: `${name}, quer acessar agora e começar do jeito certo?`,
+      options: [
+        { label: 'Sim, quero acessar agora', value: 'final_step' },
+        { label: 'Quero garantir meu acesso', value: 'final_step' },
+      ],
+      sender: 'bot',
+      delay: 1500,
+    }
+  ],
+  checkout: (name) => [
+    {
+      id: 'final-confirm',
+      type: 'text',
+      content: 'Perfeito 🙏 clique abaixo para acessar com segurança.',
+      sender: 'bot',
+      delay: 1000,
+    },
+    {
+      id: 'final-cta',
       type: 'final_cta',
       sender: 'bot',
       delay: 500,

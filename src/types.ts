@@ -7,6 +7,7 @@ export type MessageType =
   | 'price' 
   | 'testimonial' 
   | 'bonus' 
+  | 'audio'
   | 'final_cta';
 
 export interface Option {
@@ -21,6 +22,8 @@ export interface ChatMessage {
   content?: string;
   imageUrl?: string;
   imageCaption?: string;
+  audioUrl?: string;
+  duration?: string;
   options?: Option[];
   items?: string[];
   sender: 'bot' | 'user';
