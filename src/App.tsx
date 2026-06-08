@@ -300,15 +300,16 @@ export default function App() {
     // 1. Remove the selection block (buttons) from the history
     setMessages(prev => prev.filter(m => m.id !== messageId));
 
-    // 2. Add the chosen option as a real user message
-    const userMsg: ChatMessage = {
-      id: `user-choice-${Date.now()}`,
-      type: 'text',
-      content: option.label,
-      sender: 'user',
-    };
-
-    setMessages(prev => [...prev, userMsg]);
+    // 2. Add the chosen option as a real user message (unless receiving materials directly)
+    if (option.value !== 'receive_materials') {
+      const userMsg: ChatMessage = {
+        id: `user-choice-${Date.now()}`,
+        type: 'text',
+        content: option.label,
+        sender: 'user',
+      };
+      setMessages(prev => [...prev, userMsg]);
+    }
 
     // 3. Trigger handle flow transitions
     if (option.value === 'start_funnel') {

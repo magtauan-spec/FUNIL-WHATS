@@ -81,22 +81,14 @@ export const FUNNEL_STEPS: Record<string, (name: string) => ChatMessage[]> = {
     {
       id: 'receive-material-trigger',
       type: 'options',
-      content: 'Chique demais! Escutou o áudio? Então clica no botão abaixo que preparei um negócio bem especial pra você baixar do jeitinho que prometido! 👇',
       options: [
         { label: '✅ Receber Material Agora', value: 'receive_materials' }
       ],
       sender: 'bot',
-      delay: 6000,
+      delay: 3000,
     }
   ],
   receive_materials: () => [
-    {
-      id: 'pdf-unlocked-intro',
-      type: 'text',
-      content: 'Aqui está seu acesso liberado, patrão! Pode entrar para ler e analisar cada detalhe:',
-      sender: 'bot',
-      delay: 1500,
-    },
     {
       id: 'pdf-materials-block',
       type: 'pdf_list',
@@ -113,7 +105,7 @@ export const FUNNEL_STEPS: Record<string, (name: string) => ChatMessage[]> = {
         }
       ],
       sender: 'bot',
-      delay: 2000,
+      delay: 1500,
     }
   ],
   contribution_appeal: () => [
