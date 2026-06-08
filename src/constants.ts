@@ -4,217 +4,145 @@ export const SERGIO_AVATAR = "https://i.imgur.com/LUKdyfA.jpeg";
 export const CHICKEN_MOCKUP = "https://i.imgur.com/pQSQWiP.jpeg";
 export const TESTIMONIAL_IMG = "https://images.unsplash.com/photo-1560130954-43be1494879d?auto=format&fit=crop&q=80&w=200&h=200";
 
+// Demonstration images
+export const IMG_COOP = "https://i.imgur.com/e3RyTaH.jpeg";
+export const IMG_FEED = "https://i.imgur.com/e3RyTaH.jpeg";
+export const IMG_EGGS = "https://i.imgur.com/7t5qBbS.jpeg";
+export const IMG_MARKET = "https://images.unsplash.com/photo-1488459711615-2287314233af?auto=format&fit=crop&q=80&w=600&h=400";
+
 export const CHECKOUT_URL = "COLE_AQUI_O_LINK_DO_CHECKOUT";
 
 export const INITIAL_MESSAGES: ChatMessage[] = [
   {
     id: '1',
     type: 'text',
-    content: 'Opa, tudo certo? 🐔 Antes de começar, me fala seu nome rapidinho.',
+    content: 'Opa, tudo certo patrão? Aqui é o Sergio do Sitio , prazer! 👍🐓',
     sender: 'bot',
-    delay: 1000,
+    delay: 2000,
   },
   {
-    id: 'input-name',
-    type: 'input',
+    id: 'audio-initial',
+    type: 'audio',
+    audioUrl: '/WhatsApp Ptt 2026-05-30 at 00.59.43.ogg',
+    duration: '0:39',
     sender: 'bot',
+    delay: 2000,
+  },
+  {
+    id: 'audio-initial-2',
+    type: 'audio',
+    audioUrl: '/WhatsApp Ptt 2026-05-30 at 00.59.47.ogg',
+    duration: '0:39',
+    sender: 'bot',
+    delay: 10000,
+  },
+  {
+    id: 'mockup-initial',
+    type: 'image',
+    imageUrl: CHICKEN_MOCKUP,
+    sender: 'bot',
+    delay: 2000,
+  },
+  {
+    id: 'trust-msg-1',
+    type: 'text',
+    content: 'Para mostrar nossa confiança e compromisso, eu envio o Guia antes de você fazer o pagamento. 🙏',
+    sender: 'bot',
+    delay: 3000,
+  },
+  {
+    id: 'trust-msg-2',
+    type: 'text',
+    content: 'Pode ser Patrão? 👍😁',
+    sender: 'bot',
+    delay: 2000,
+  },
+  {
+    id: 'initial-trigger',
+    type: 'options',
+    options: [
+      { label: 'Sim, pode Sergio. 😁', value: 'start_funnel' },
+    ],
+    sender: 'bot',
+    delay: 2000,
   }
 ];
 
 export const FUNNEL_STEPS: Record<string, (name: string) => ChatMessage[]> = {
-  afterName: (name) => [
+  startFunnel: () => [
     {
-      id: '2',
-      type: 'text',
-      content: `Boa, ${name}. Vamos lá… vou te explicar rapidinho como funciona.`,
-      sender: 'bot',
-      delay: 1500,
-    },
-    {
-      id: 'audio-1',
+      id: 'audio-3',
       type: 'audio',
-      audioUrl: '/audio-1.mp3',
-      duration: '0:36',
+      audioUrl: '/WhatsApp Ptt 2026-05-30 at 12.41.27.ogg',
+      duration: '0:21',
       sender: 'bot',
-      delay: 1000,
+      delay: 3000,
     },
     {
-      id: 'desc-mockup',
-      type: 'text',
-      content: 'Esse aqui é o guia completo 👇',
-      sender: 'bot',
-      delay: 1500,
-    },
-    {
-      id: 'mockup',
-      type: 'image',
-      imageUrl: CHICKEN_MOCKUP,
-      imageCaption: 'Guia Criação Lucrativa de Galinha Caipira',
-      sender: 'bot',
-      delay: 1000,
-    },
-    {
-      id: 'initial-query',
+      id: 'receive-material-trigger',
       type: 'options',
-      content: 'Hoje você já cria galinha ou ainda quer começar?',
+      content: 'Chique demais! Escutou o áudio? Então clica no botão abaixo que preparei um negócio bem especial pra você baixar do jeitinho que prometido! 👇',
       options: [
-        { label: 'Já crio algumas', value: 'ja_crio' },
-        { label: 'Quero começar do zero', value: 'começar' },
-        { label: 'Tenho quintal ou sítio parado', value: 'espaco' },
+        { label: '✅ Receber Material Agora', value: 'receive_materials' }
       ],
       sender: 'bot',
-      delay: 1500,
+      delay: 6000,
     }
   ],
-  afterInitialOptions: (name) => [
+  receive_materials: () => [
     {
-      id: 'after-opt',
+      id: 'pdf-unlocked-intro',
       type: 'text',
-      content: `Perfeito, ${name}. Então esse material pode te ajudar bastante, porque ele mostra o caminho sem enrolação.`,
+      content: 'Aqui está seu acesso liberado, patrão! Pode entrar para ler e analisar cada detalhe:',
       sender: 'bot',
       delay: 1500,
     },
     {
-      id: 'learn-intro',
-      type: 'text',
-      content: 'Dentro dele você aprende:',
-      sender: 'bot',
-      delay: 1000,
-    },
-    {
-      id: 'checklist-learn',
-      type: 'checklist',
-      items: [
-        'Como montar um galinheiro simples',
-        'Como alimentar melhor as galinhas',
-        'Como organizar a criação',
-        'Como produzir ovos',
-        'Como evitar erros no começo',
-        'Como vender ovos na sua região'
+      id: 'pdf-materials-block',
+      type: 'pdf_list',
+      pdfItems: [
+        {
+          title: 'Guia de Criação Lucrativa Vol. 1',
+          filename: '/GuiaCriaçãoLucrativa 1.pdf',
+          pages: 54
+        },
+        {
+          title: 'Guia Complementar - Galinheiro Barato & Manejos',
+          filename: '/GuiaCriaçãoLucrativa 2.pdf',
+          pages: 36
+        }
       ],
-      sender: 'bot',
-      delay: 500,
-    },
-    {
-      id: 'start-small',
-      type: 'text',
-      content: 'E não precisa começar grande. Dá pra começar pequeno, com o espaço que você já tem, e ir melhorando aos poucos.',
       sender: 'bot',
       delay: 2000,
-    },
-    {
-      id: 'doubt-query',
-      type: 'options',
-      content: 'Qual dessas dúvidas mais trava você hoje?',
-      options: [
-        { label: 'Não sei por onde começar', value: 'por_onde' },
-        { label: 'Tenho medo de gastar errado', value: 'medo_gastar' },
-        { label: 'Não sei montar o galinheiro', value: 'montar' },
-        { label: 'Não sei vender os ovos', value: 'vender' },
-      ],
-      sender: 'bot',
-      delay: 1500,
     }
   ],
-  afterDoubtOptions: (name) => [
+  contribution_appeal: () => [
     {
-      id: 'doubt-response',
+      id: 'contribution-text',
       type: 'text',
-      content: 'Essa é justamente a parte que mais trava quem quer começar. Por isso o guia foi feito pra tirar você do chute.',
+      content: '🙏 Patrão, espero de verdade que esse material te ajude.\n\nComo forma de confiança, eu te entreguei tudo antes de pedir qualquer pagamento.\n\nAgora fica sua contribuição simbólica para ajudar esse projeto a continuar alcançando mais pessoas que querem transformar um espaço parado em renda com ovos 🥚💰',
       sender: 'bot',
       delay: 1500,
     },
     {
-      id: 'testimonial-header',
-      type: 'text',
-      content: 'Olha o que algumas pessoas estão falando:',
-      sender: 'bot',
-      delay: 1000,
-    },
-    {
-      id: 'testimonial-card',
-      type: 'testimonial',
-      name: 'João Batista',
-      location: 'MG',
-      content: 'Comprei achando que era só mais um material, mas me surpreendi. Eu tava perdido sem saber como começar, agora já separei o espaço do galinheiro e tô organizando minha criação aos poucos. Bem direto e fácil de entender.',
-      sender: 'bot',
-      delay: 1000,
-    },
-    {
-      id: 'before-audio-2',
-      type: 'text',
-      content: 'Antes de te passar o acesso, escuta isso aqui rapidinho 👇',
-      sender: 'bot',
-      delay: 2000,
-    },
-    {
-      id: 'audio-2',
-      type: 'audio',
-      audioUrl: '/audio-2.mp3',
-      duration: '0:22',
-      sender: 'bot',
-      delay: 1000,
-    },
-    {
-      id: 'after-audio-2',
-      type: 'text',
-      content: 'Você recebe o guia principal + os bônus e pode acessar pelo celular, computador ou imprimir.',
-      sender: 'bot',
-      delay: 2000,
-    },
-    {
-      id: 'bonus-checklist',
-      type: 'bonus',
-      items: [
-        'Guia de Ração Caseira',
-        'Programa Completo de Vacinação das Aves',
-        'Guia de Doenças e Emergências',
-        'Estratégia Para Vender Ovos'
-      ],
-      sender: 'bot',
-      delay: 1000,
-    },
-    {
-      id: 'price-intro',
-      type: 'text',
-      content: 'Hoje o acesso completo está saindo por apenas:',
-      sender: 'bot',
-      delay: 2000,
-    },
-    {
-      id: 'price-card',
+      id: 'contribution-price',
       type: 'price',
       price: 'R$27,00',
-      content: 'Pagamento único. Acesso imediato. Material digital.',
+      content: 'Contribuição Única — Acesso Vitalício',
       sender: 'bot',
-      delay: 1000,
+      delay: 1500,
     },
     {
-      id: 'final-query',
+      id: 'contribution-cta',
       type: 'options',
-      content: `${name}, quer acessar agora e começar do jeito certo?`,
       options: [
-        { label: 'Sim, quero acessar agora', value: 'final_step' },
-        { label: 'Quero garantir meu acesso', value: 'final_step' },
+        { label: 'CONCORDAR E CONTRIBUIR — R$27 🥚💰', value: 'checkout' },
+        { label: 'Quero tirar uma dúvida', value: 'doubt' }
       ],
       sender: 'bot',
       delay: 1500,
     }
   ],
-  checkout: (name) => [
-    {
-      id: 'final-confirm',
-      type: 'text',
-      content: 'Perfeito 🙏 clique abaixo para acessar com segurança.',
-      sender: 'bot',
-      delay: 1000,
-    },
-    {
-      id: 'final-cta',
-      type: 'final_cta',
-      sender: 'bot',
-      delay: 500,
-      price: 'R$27',
-    }
-  ]
+  step2: () => [],
+  step3: () => []
 };

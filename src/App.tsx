@@ -5,21 +5,81 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Check, Send, User, ChevronRight, Star, Video, Phone, MoreVertical, Plus, Smile, Info, Play, Pause, Mic } from 'lucide-react';
-import { ChatMessage, Option } from './types';
+import { Check, Send, User, ChevronRight, Star, Video, Phone, MoreVertical, Plus, Smile, Info, Play, Pause, Mic, X } from 'lucide-react';
+import { ChatMessage, Option, PdfItem } from './types';
 import { INITIAL_MESSAGES, FUNNEL_STEPS, SERGIO_AVATAR, CHECKOUT_URL } from './constants';
 
-const WhatsAppAudio: React.FC<{ url: string; duration: string; avatar?: string }> = ({ url, duration, avatar }) => {
+const WhatsAppAudio: React.FC<{ 
+  id: string;
+  url: string; 
+  duration: string; 
+  avatar?: string;
+  currentlyPlayingId: string | null;
+  onPlay: () => void;
+  onPause: () => void;
+  onEnded: () => void;
+}> = ({ id, url, duration, avatar, currentlyPlayingId, onPlay, onPause, onEnded }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState('0:00');
+  const [displayedDuration, setDisplayedDuration] = useState(duration);
   const [error, setError] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  const parseDurationToSeconds = (durStr: string): number => {
+    if (!durStr) return 39;
+    const parts = durStr.split(':');
+    if (parts.length === 2) {
+      const minutes = parseInt(parts[0], 10);
+      const seconds = parseInt(parts[1], 10);
+      if (!isNaN(minutes) && !isNaN(seconds)) {
+        return (minutes * 60) + seconds;
+      }
+    }
+    return 39;
+  };
+
   const formatTime = (time: number) => {
+    if (isNaN(time) || !isFinite(time)) return duration;
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  useEffect(() => {
+    setDisplayedDuration(duration);
+    setCurrentTime('0:00');
+    setProgress(0);
+    setIsPlaying(false);
+    setError(false);
+  }, [url, duration]);
+
+  useEffect(() => {
+    if (!audioRef.current) return;
+    if (currentlyPlayingId === id) {
+      if (!isPlaying) {
+        audioRef.current.play()
+          .then(() => setIsPlaying(true))
+          .catch(err => {
+            console.error("Erro ao tocar áudio automático:", err);
+            setError(true);
+          });
+      }
+    } else {
+      if (isPlaying) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      }
+    }
+  }, [currentlyPlayingId, id]);
+
+  const handleDurationUpdate = () => {
+    if (audioRef.current) {
+      const dur = audioRef.current.duration;
+      if (!isNaN(dur) && isFinite(dur) && dur > 1) {
+        setDisplayedDuration(formatTime(dur));
+      }
+    }
   };
 
   const togglePlay = () => {
@@ -27,22 +87,22 @@ const WhatsAppAudio: React.FC<{ url: string; duration: string; avatar?: string }
     if (isPlaying) {
       audioRef.current.pause();
       setIsPlaying(false);
+      onPause();
     } else {
-      audioRef.current.play()
-        .then(() => setIsPlaying(true))
-        .catch(err => {
-          console.error("Erro ao tocar áudio:", err);
-          setError(true);
-        });
+      onPlay();
     }
   };
 
   const handleTimeUpdate = () => {
     if (!audioRef.current) return;
     const current = audioRef.current.currentTime;
-    const total = audioRef.current.duration;
+    const fallbackTotal = parseDurationToSeconds(duration);
+    const total = audioRef.current.duration && isFinite(audioRef.current.duration) && audioRef.current.duration > 0
+      ? audioRef.current.duration
+      : fallbackTotal;
+
     setCurrentTime(formatTime(current));
-    if (total) {
+    if (total && !isNaN(total) && isFinite(total) && total > 0) {
       setProgress((current / total) * 100);
     }
   };
@@ -51,6 +111,25 @@ const WhatsAppAudio: React.FC<{ url: string; duration: string; avatar?: string }
     setIsPlaying(false);
     setProgress(0);
     setCurrentTime('0:00');
+    onEnded();
+  };
+
+  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!audioRef.current || error) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const percentage = clickX / rect.width;
+    const fallbackTotal = parseDurationToSeconds(duration);
+    const total = audioRef.current.duration && isFinite(audioRef.current.duration) && audioRef.current.duration > 0
+      ? audioRef.current.duration
+      : fallbackTotal;
+
+    const targetTime = percentage * total;
+    if (!isNaN(targetTime) && isFinite(targetTime)) {
+      audioRef.current.currentTime = targetTime;
+      setProgress(percentage * 100);
+      setCurrentTime(formatTime(targetTime));
+    }
   };
 
   // Simulated waveform bar heights
@@ -67,6 +146,9 @@ const WhatsAppAudio: React.FC<{ url: string; duration: string; avatar?: string }
         src={url} 
         onTimeUpdate={handleTimeUpdate} 
         onEnded={handleEnded}
+        onLoadedMetadata={handleDurationUpdate}
+        onDurationChange={handleDurationUpdate}
+        onCanPlay={handleDurationUpdate}
         onError={() => {
           console.error(`Não foi possível carregar o áudio em: ${url}`);
           setError(true);
@@ -89,7 +171,10 @@ const WhatsAppAudio: React.FC<{ url: string; duration: string; avatar?: string }
         {error ? (
           <span className="text-[10px] text-red-400 font-medium whitespace-nowrap">Erro ao carregar áudio</span>
         ) : (
-          <div className="relative h-6 flex items-center gap-[2.5px] px-1 group cursor-pointer">
+          <div 
+            onClick={handleSeek}
+            className="relative h-6 flex items-center gap-[2.5px] px-1 group cursor-pointer"
+          >
             {bars.map((height, i) => {
               const barProgress = (i / bars.length) * 100;
               const isPlayed = progress > barProgress;
@@ -112,14 +197,11 @@ const WhatsAppAudio: React.FC<{ url: string; duration: string; avatar?: string }
           </div>
         )}
         <div className="flex justify-between items-center px-1 mt-1">
-          <span className="text-[11px] text-whatsapp-text-secondary">
-            {isPlaying ? currentTime : duration}
+          <span className="text-[11px] text-whatsapp-text-secondary select-none">
+            {isPlaying || progress > 0 ? currentTime : displayedDuration}
           </span>
           <div className="flex items-center gap-2">
-            <span className="text-[11px] text-whatsapp-text-secondary">
-              {duration}
-            </span>
-            <span className="text-[10px] text-whatsapp-text-secondary/60 ml-1">
+            <span className="text-[10px] text-whatsapp-text-secondary/60 ml-1 select-none">
               {now}
             </span>
           </div>
@@ -140,12 +222,23 @@ const WhatsAppAudio: React.FC<{ url: string; duration: string; avatar?: string }
 
 export default function App() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [isTyping, setIsTyping] = useState(false);
+  const [typingStatus, setTypingStatus] = useState<'typing' | 'recording' | 'online'>('online');
+  const [currentlyPlayingAudioId, setCurrentlyPlayingAudioId] = useState<string | null>(null);
   const [userName, setUserName] = useState('');
   const [nameInput, setNameInput] = useState('');
   const [currentStep, setCurrentStep] = useState<string>('start');
+  const [previewPdf, setPreviewPdf] = useState<PdfItem | null>(null);
+  const [contributionTriggered, setContributionTriggered] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const initialized = useRef(false);
+
+  const handleClosePdf = () => {
+    setPreviewPdf(null);
+    if (!contributionTriggered) {
+      setContributionTriggered(true);
+      addNextMessages(FUNNEL_STEPS.contribution_appeal(''));
+    }
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -153,7 +246,7 @@ export default function App() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, isTyping]);
+  }, [messages, typingStatus]);
 
   useEffect(() => {
     if (initialized.current) return;
@@ -171,9 +264,10 @@ export default function App() {
         break;
       }
       
-      setIsTyping(true);
+      const status = msg.type === 'audio' ? 'recording' : 'typing';
+      setTypingStatus(status);
       await new Promise(resolve => setTimeout(resolve, msg.delay || 1000));
-      setIsTyping(false);
+      setTypingStatus('online');
 
       if (msg.type === 'options' && msg.content) {
         // First add the text part as a separate bot message
@@ -202,25 +296,6 @@ export default function App() {
     }
   };
 
-  const handleNameSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!nameInput.trim()) return;
-
-    const name = nameInput.trim();
-    setUserName(name);
-    
-    const userMsg: ChatMessage = {
-      id: `user-${Date.now()}`,
-      type: 'text',
-      content: name,
-      sender: 'user',
-    };
-    
-    setMessages(prev => prev.filter(m => m.type !== 'input').concat(userMsg));
-    addNextMessages(FUNNEL_STEPS.afterName(name));
-    setCurrentStep('initialOptions');
-  };
-
   const handleOptionClick = (option: Option, messageId: string) => {
     // 1. Remove the selection block (buttons) from the history
     setMessages(prev => prev.filter(m => m.id !== messageId));
@@ -236,18 +311,38 @@ export default function App() {
     setMessages(prev => [...prev, userMsg]);
 
     // 3. Trigger handle flow transitions
-    if (currentStep === 'initialOptions') {
-      addNextMessages(FUNNEL_STEPS.afterInitialOptions(userName));
-      setCurrentStep('doubtOptions');
-    } else if (currentStep === 'doubtOptions') {
-      addNextMessages(FUNNEL_STEPS.afterDoubtOptions(userName));
-      setCurrentStep('finalChoice');
-    } else if (option.value === 'final_step') {
-      addNextMessages(FUNNEL_STEPS.checkout(userName));
-      setCurrentStep('completed');
+    if (option.value === 'start_funnel') {
+      addNextMessages(FUNNEL_STEPS.startFunnel(''));
+    } else if (option.value === 'receive_materials') {
+      addNextMessages(FUNNEL_STEPS.receive_materials(''));
+    } else if (option.value === 'step_2') {
+      addNextMessages(FUNNEL_STEPS.step2(''));
+    } else if (option.value === 'step_3') {
+      addNextMessages(FUNNEL_STEPS.step3(''));
+    } else if (option.value === 'doubt') {
+      window.location.href = "https://wa.me/SEU_NUMERO_AQUI";
     } else if (option.value === 'checkout') {
       window.location.href = CHECKOUT_URL;
     }
+  };
+
+  const handleAudioEnded = (endedId: string) => {
+    setMessages(currentMessages => {
+      const currentIndex = currentMessages.findIndex(m => m.id === endedId);
+      if (currentIndex !== -1) {
+        const nextAudioMessage = currentMessages.slice(currentIndex + 1).find(m => m.type === 'audio');
+        if (nextAudioMessage) {
+          setTimeout(() => {
+            setCurrentlyPlayingAudioId(nextAudioMessage.id);
+          }, 100);
+        } else {
+          setCurrentlyPlayingAudioId(null);
+        }
+      } else {
+        setCurrentlyPlayingAudioId(null);
+      }
+      return currentMessages;
+    });
   };
 
   return (
@@ -298,19 +393,31 @@ export default function App() {
                   msg={msg} 
                   isFirstInGroup={isFirstInGroup}
                   onOptionClick={(opt) => handleOptionClick(opt, msg.id)}
+                  currentlyPlayingId={currentlyPlayingAudioId}
+                  onAudioPlay={(id) => setCurrentlyPlayingAudioId(id)}
+                  onAudioPause={() => setCurrentlyPlayingAudioId(null)}
+                  onAudioEnded={handleAudioEnded}
+                  onPdfView={(pdf) => setPreviewPdf(pdf)}
                 />
               );
             })}
           </AnimatePresence>
           
-          {isTyping && (
+          {typingStatus !== 'online' && (
             <motion.div 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               className="flex justify-start"
             >
-              <div className="bg-whatsapp-bubble-bot text-whatsapp-text-secondary px-3 py-1.5 rounded-lg text-[13px] italic">
-                digitando...
+              <div className="bg-whatsapp-bubble-bot text-whatsapp-text-secondary px-3 py-1.5 rounded-lg text-[13px] italic flex items-center gap-1.5 animate-pulse">
+                {typingStatus === 'recording' ? (
+                  <>
+                    <Mic className="w-3.5 h-3.5 text-whatsapp-text-secondary" />
+                    <span>gravando áudio...</span>
+                  </>
+                ) : (
+                  <span>digitando...</span>
+                )}
               </div>
             </motion.div>
           )}
@@ -326,35 +433,78 @@ export default function App() {
         </div>
         
         <div className="flex-1 relative">
-          {!userName ? (
-            <form onSubmit={handleNameSubmit} className="flex gap-2 w-full">
-              <input 
-                type="text" 
-                placeholder="Digite seu nome..."
-                value={nameInput}
-                onChange={(e) => setNameInput(e.target.value)}
-                className="w-full bg-[#2a3942] text-whatsapp-text-primary text-[16px] rounded-lg px-4 py-2.5 outline-none placeholder:text-whatsapp-text-secondary pr-12"
-                autoFocus
-              />
-              <button 
-                type="submit"
-                className="absolute right-1 top-1 w-9 h-9 bg-whatsapp-green rounded-full flex items-center justify-center shrink-0 shadow-lg active:scale-90 transition-transform"
-              >
-                <Send className="w-4 h-4 text-white" />
-              </button>
-            </form>
-          ) : (
-            <div className="flex gap-2">
-              <div className="w-full bg-[#2a3942] rounded-lg px-4 py-2.5 text-[15px] text-whatsapp-text-secondary">
-                Digite uma mensagem
-              </div>
-              <div className="w-11 h-11 bg-whatsapp-green rounded-full flex items-center justify-center shrink-0 opacity-50 cursor-not-allowed">
-                <Send className="w-5 h-5 text-white ml-0.5" />
-              </div>
+          <div className="flex gap-2">
+            <div className="w-full bg-[#2a3942] rounded-lg px-4 py-2.5 text-[15px] text-whatsapp-text-secondary">
+              Digite uma mensagem
             </div>
-          )}
+            <div className="w-11 h-11 bg-whatsapp-green rounded-full flex items-center justify-center shrink-0 opacity-50 cursor-not-allowed">
+              <Send className="w-5 h-5 text-white ml-0.5" />
+            </div>
+          </div>
         </div>
       </footer>
+
+      {/* PDF Visualizer Overlay */}
+      <AnimatePresence>
+        {previewPdf && (
+          <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4 animate-fadeIn">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+              className="bg-[#1f2c34] rounded-2xl w-full max-w-4xl h-[90vh] md:h-[85vh] flex flex-col overflow-hidden shadow-2xl border border-white/10"
+            >
+              {/* Modal Header */}
+              <div className="bg-[#111b21] p-3 sm:p-4 flex items-center justify-between border-b border-white/10 shrink-0">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="p-2.5 bg-red-500/10 text-red-500 rounded-lg shrink-0">
+                    <svg className="w-5 h-5 text-red-500 fill-current" viewBox="0 0 24 24">
+                      <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2m-7 6c.55 0 1 .45 1 1s-.45 1-1 1s-1-.45-1-1s.45-1 1-1m-4 5h8v2H8v-2m0-3h8v2H8V11Z" />
+                    </svg>
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-white font-bold text-sm sm:text-base leading-tight truncate">
+                      {previewPdf.title}
+                    </h3>
+                    <span className="text-[11px] sm:text-xs text-whatsapp-text-secondary">
+                      {previewPdf.pages} páginas • Visualização do WhatsApp
+                    </span>
+                  </div>
+                </div>
+                <button 
+                  onClick={handleClosePdf}
+                  className="p-2 hover:bg-white/10 rounded-full transition-colors text-whatsapp-text-secondary hover:text-white cursor-pointer hover:scale-105 active:scale-95 shrink-0"
+                  aria-label="Fechar PDF"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              {/* PDF Embed / View Area */}
+              <div className="flex-1 bg-[#0b141a] relative overflow-hidden flex flex-col">
+                <iframe 
+                  src={`${previewPdf.filename}#toolbar=0&navpanes=0&view=FitH`}
+                  className="w-full h-full border-none"
+                  title={previewPdf.title}
+                />
+                
+                {/* Elder Helpful Guidance Bar */}
+                <div className="bg-[#111b21] p-2.5 text-center text-[12px] text-whatsapp-text-secondary select-none shrink-0 border-t border-white/5 flex items-center justify-center gap-4">
+                  <span className="font-medium">Role ou deslize para ler o livro</span>
+                  <span className="text-white/20 select-none">•</span>
+                  <button 
+                    onClick={handleClosePdf}
+                    className="text-whatsapp-green font-bold hover:underline cursor-pointer"
+                  >
+                    Clique aqui para fechar e voltar
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -363,10 +513,20 @@ const ChatBubble: React.FC<{
   msg: ChatMessage, 
   isFirstInGroup: boolean,
   onOptionClick: (opt: Option) => void,
+  currentlyPlayingId: string | null;
+  onAudioPlay: (id: string) => void;
+  onAudioPause: () => void;
+  onAudioEnded: (id: string) => void;
+  onPdfView?: (pdf: PdfItem) => void;
 }> = ({ 
   msg, 
   isFirstInGroup,
   onOptionClick, 
+  currentlyPlayingId,
+  onAudioPlay,
+  onAudioPause,
+  onAudioEnded,
+  onPdfView,
 }) => {
   const isBot = msg.sender === 'bot';
   const showOnRight = !isBot || msg.type === 'options';
@@ -391,7 +551,16 @@ const ChatBubble: React.FC<{
         )}
         
         {msg.type === 'audio' && (
-          <WhatsAppAudio url={msg.audioUrl || ''} duration={msg.duration || '0:00'} avatar={SERGIO_AVATAR} />
+          <WhatsAppAudio 
+            id={msg.id}
+            url={msg.audioUrl || ''} 
+            duration={msg.duration || '0:00'} 
+            avatar={SERGIO_AVATAR} 
+            currentlyPlayingId={currentlyPlayingId}
+            onPlay={() => onAudioPlay(msg.id)}
+            onPause={onAudioPause}
+            onEnded={() => onAudioEnded(msg.id)}
+          />
         )}
 
         {msg.type === 'image' && (
@@ -402,6 +571,24 @@ const ChatBubble: React.FC<{
                 alt={msg.imageCaption} 
                 className="w-full h-auto cursor-pointer hover:opacity-95 transition-opacity"
                 referrerPolicy="no-referrer"
+              />
+            </div>
+            {msg.imageCaption && (
+              <p className="text-whatsapp-text-primary text-[13.5px] font-medium leading-tight">
+                {msg.imageCaption}
+              </p>
+            )}
+          </div>
+        )}
+
+        {msg.type === 'video' && (
+          <div className="space-y-1.5 p-0.5">
+            <div className="rounded-md overflow-hidden bg-black/20 w-full max-w-[320px]">
+              <video 
+                src={msg.videoUrl} 
+                controls
+                playsInline
+                className="w-full h-auto rounded-md"
               />
             </div>
             {msg.imageCaption && (
@@ -425,15 +612,41 @@ const ChatBubble: React.FC<{
                  </div>
                </div>
             )}
-            <div className="flex flex-col gap-2 w-full">
+            <div className="flex flex-col gap-2 w-full max-w-sm sm:max-w-md mx-auto mt-2">
               {msg.options?.map((opt, idx) => (
-                <button
+                <motion.button
                   key={idx}
                   onClick={() => onOptionClick(opt)}
-                  className="bg-whatsapp-bubble-user text-whatsapp-text-primary text-[14.5px] py-3 px-4 rounded-xl whatsapp-shadow hover:brightness-110 active:scale-95 transition-all text-right border border-white/5 font-medium"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  initial={{ scale: 0.96, opacity: 0 }}
+                  animate={{ 
+                    scale: 1, 
+                    opacity: 1,
+                    boxShadow: [
+                      "0 0 0 0 rgba(37, 211, 102, 0)",
+                      "0 0 15px 3px rgba(37, 211, 102, 0.35)",
+                      "0 0 0 0 rgba(37, 211, 102, 0)"
+                    ]
+                  }}
+                  transition={{
+                    boxShadow: {
+                      repeat: Infinity,
+                      duration: 2,
+                    },
+                    duration: 0.3
+                  }}
+                  className="w-full bg-[#128c7e] text-white font-bold text-[16px] py-4 px-6 rounded-2xl flex items-center justify-between gap-3 shadow-[0_4px_14px_rgba(18,140,126,0.4)] hover:bg-[#075e54] transition-all cursor-pointer select-none border border-whatsapp-green/40"
                 >
-                  {opt.label}
-                </button>
+                  <span className="flex-1 text-center font-bold tracking-wide">{opt.label}</span>
+                  <motion.span
+                    animate={{ x: [0, 5, 0] }}
+                    transition={{ repeat: Infinity, duration: 1.2, ease: "easeInOut" }}
+                    className="shrink-0 bg-white/20 p-1.5 rounded-full flex items-center justify-center ms-auto"
+                  >
+                    <ChevronRight className="w-5 h-5 text-white" />
+                  </motion.span>
+                </motion.button>
               ))}
             </div>
           </div>
@@ -484,6 +697,41 @@ const ChatBubble: React.FC<{
               <div key={idx} className="flex items-center gap-3 bg-black/30 p-2.5 rounded-xl border border-white/5">
                 <span className="text-xl">🎁</span>
                 <span className="text-whatsapp-text-primary text-[13px] font-bold">{item}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {msg.type === 'pdf_list' && (
+          <div className="flex flex-col gap-2.5 w-full my-1.5 min-w-[280px]">
+            {msg.pdfItems?.map((pdf, idx) => (
+              <div 
+                key={idx} 
+                className="bg-[#111b21] hover:bg-[#18252f] transition-all rounded-xl p-3 border border-white/5 flex items-center justify-between gap-3 shadow-md group"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="p-2.5 bg-red-500/10 text-red-500 rounded-lg flex items-center justify-center shrink-0">
+                    <svg className="w-6 h-6 text-red-500 fill-current" viewBox="0 0 24 24">
+                      <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2m-7 6c.55 0 1 .45 1 1s-.45 1-1 1s-1-.45-1-1s.45-1 1-1m-4 5h8v2H8v-2m0-3h8v2H8V11Z" />
+                    </svg>
+                  </div>
+                  <div className="min-w-0 flex flex-col justify-center">
+                    <p className="text-whatsapp-text-primary text-[13.5px] font-bold leading-tight truncate group-hover:text-whatsapp-green transition-colors">
+                      {pdf.title}
+                    </p>
+                    <span className="text-[10.5px] text-whatsapp-text-secondary mt-0.5">
+                      Livro PDF • {pdf.pages} pág.
+                    </span>
+                  </div>
+                </div>
+                
+                <button 
+                  onClick={() => onPdfView && onPdfView(pdf)}
+                  className="bg-whatsapp-green hover:bg-[#128c7e] text-white font-bold text-[12px] py-1.5 px-3.5 rounded-lg flex items-center gap-0.5 shrink-0 whatsapp-shadow transition-colors cursor-pointer"
+                >
+                  <span>Visualizar</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
               </div>
             ))}
           </div>
