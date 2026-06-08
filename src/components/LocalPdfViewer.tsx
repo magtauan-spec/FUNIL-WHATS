@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize2, Loader2, ArrowLeft } from 'lucide-react';
+import { ZoomIn, ZoomOut, Loader2 } from 'lucide-react';
 
 interface LocalPdfViewerProps {
   url: string;
@@ -11,16 +11,13 @@ interface LocalPdfViewerProps {
 export function LocalPdfViewer({ url, title, pagesCount, onClose }: LocalPdfViewerProps) {
   const [pdf, setPdf] = useState<any>(null);
   const [numPages, setNumPages] = useState<number>(pagesCount || 1);
-  const [currentPage, setCurrentPage] = useState<number>(1);
   const [loading, setLoading] = useState<boolean>(true);
   const [zoom, setZoom] = useState<number>(1.0); // scale multiplier
-  const [rendering, setRendering] = useState<boolean>(false);
+  const [aspectRatio, setAspectRatio] = useState<number>(1.414); // A4 page standard aspect ratio (h/w)
+  const [containerWidth, setContainerWidth] = useState<number>(340);
   const [renderError, setRenderError] = useState<string | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const renderTaskRef = useRef<any>(null);
-  const touchStartX = useRef<number>(0);
 
   // Load PDF when URL/instance changes
   useEffect(() => {
@@ -28,19 +25,17 @@ export function LocalPdfViewer({ url, title, pagesCount, onClose }: LocalPdfView
 
     setLoading(true);
     setRenderError(null);
-    setCurrentPage(1);
     setZoom(1.0);
 
     const pdfjsLib = (window as any).pdfjsLib;
     if (!pdfjsLib) {
       console.warn("PDF.js global library not found inside window, attempting to wait...");
-      // Simple poll to retrieve if not matching yet
       const interval = setInterval(() => {
         if ((window as any).pdfjsLib) {
           clearInterval(interval);
           initializePdf();
         }
-      }, 200);
+      }, 150);
       return () => clearInterval(interval);
     }
 
@@ -52,121 +47,66 @@ export function LocalPdfViewer({ url, title, pagesCount, onClose }: LocalPdfView
 
       const loadingTask = lib.getDocument({
         url,
-        withCredentials: true // allows auth cookies for local pathing
+        withCredentials: true // allows auth cookies if needed
       });
 
       loadingTask.promise.then(
-        (loadedPdf: any) => {
+        async (loadedPdf: any) => {
           setPdf(loadedPdf);
           setNumPages(loadedPdf.numPages);
+          
+          try {
+            // Get aspect ratio from first page dynamically
+            const firstPage = await loadedPdf.getPage(1);
+            const view = firstPage.getViewport({ scale: 1.0 });
+            if (view.width && view.height) {
+              setAspectRatio(view.height / view.width);
+            }
+          } catch (err) {
+            console.error("Error reading PDF page aspect ratio:", err);
+          }
+          
           setLoading(false);
         },
         (error: any) => {
           console.error("LocalPdfViewer: Error decoding PDF document:", error);
-          setRenderError("Não foi possível carregar o arquivo PDF. Abra em tela cheia.");
+          setRenderError("Não foi possível carregar o arquivo PDF. Clique abaixo para ler ou baixar.");
           setLoading(false);
         }
       );
     }
-
-    return () => {
-      if (renderTaskRef.current) {
-        renderTaskRef.current.cancel();
-      }
-    };
   }, [url]);
 
-  // Precise Canvas Render Function
-  const renderPage = async (pageNum: number, currentZoom: number) => {
-    if (!pdf || !canvasRef.current || !containerRef.current) return;
-
-    try {
-      setRendering(true);
-
-      // Cancel any ongoing rendering task
-      if (renderTaskRef.current) {
-        renderTaskRef.current.cancel();
-      }
-
-      const page = await pdf.getPage(pageNum);
-      const canvas = canvasRef.current;
-      const context = canvas.getContext('2d');
-      if (!context) return;
-
-      // Match parent responsive bounding box minus horizontal safety bounds
-      const parentWidth = containerRef.current.getBoundingClientRect().width || 375;
-      const horizontalPadding = window.innerWidth < 640 ? 12 : 32;
-      const containerWidth = Math.max(280, parentWidth - horizontalPadding);
-
-      const unscaledViewport = page.getViewport({ scale: 1.0 });
-      
-      // Calculate fit scale: how much scale is needed to fit the exact width of our parent container
-      const fitScale = containerWidth / unscaledViewport.width;
-      
-      // Apply our absolute zoom multiplier of the responsive fit width
-      const viewport = page.getViewport({ scale: fitScale * currentZoom });
-
-      // Support mobile High DPI displays gracefully (Retina Screen sharp rendering)
-      const dpr = Math.min(2, window.devicePixelRatio || 1);
-      canvas.width = viewport.width * dpr;
-      canvas.height = viewport.height * dpr;
-
-      // Constrain sizing using standard style CSS so it fits without viewport breaking
-      canvas.style.width = '100%';
-      canvas.style.maxWidth = `${viewport.width}px`;
-      canvas.style.height = 'auto';
-
-      context.resetTransform();
-      context.scale(dpr, dpr);
-
-      const renderContext = {
-        canvasContext: context,
-        viewport: viewport
-      };
-
-      const renderTask = page.render(renderContext);
-      renderTaskRef.current = renderTask;
-
-      await renderTask.promise;
-      setRendering(false);
-    } catch (err: any) {
-      if (err.name !== 'RenderingCancelledException') {
-        console.error("PDF Render Exception caught:", err);
-        setRendering(false);
-      }
-    }
-  };
-
-  // Render trigger on structural state events
+  // Track the container's available width using a ResizeObserver
   useEffect(() => {
-    if (pdf) {
-      renderPage(currentPage, zoom);
-    }
-  }, [pdf, currentPage, zoom]);
+    if (!containerRef.current) return;
 
-  // Responsive redraw on container resizing
-  useEffect(() => {
-    const handleResize = () => {
-      if (pdf) {
-        renderPage(currentPage, zoom);
-      }
+    const updateWidth = () => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      // Reserve lateral spacing for standard margins on sm/lg viewports
+      const padding = window.innerWidth < 640 ? 16 : 48;
+      const width = Math.max(260, rect.width - padding);
+      setContainerWidth(width);
     };
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [pdf, currentPage, zoom]);
+    updateWidth();
 
-  const handleNextPage = () => {
-    if (currentPage < numPages) {
-      setCurrentPage(prev => prev + 1);
+    const resizeObserver = new ResizeObserver(() => {
+      updateWidth();
+    });
+    
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
     }
-  };
 
-  const handlePrevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(prev => prev - 1);
-    }
-  };
+    window.addEventListener('resize', updateWidth);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', updateWidth);
+    };
+  }, []);
 
   const handleZoomIn = () => {
     setZoom(prev => Math.min(2.5, prev + 0.15));
@@ -180,40 +120,23 @@ export function LocalPdfViewer({ url, title, pagesCount, onClose }: LocalPdfView
     setZoom(1.0);
   };
 
-  // Handle Touch Gestures for Page Swiping (extremely pleasant on smartphones)
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    const touchEndX = e.changedTouches[0].clientX;
-    const diff = touchEndX - touchStartX.current;
-    
-    // Minimum boundary drag swipe triggers
-    if (Math.abs(diff) > 55) {
-      if (diff < 0) {
-        handleNextPage();
-      } else {
-        handlePrevPage();
-      }
-    }
-  };
+  const pagesArray = Array.from({ length: numPages }, (_, i) => i + 1);
 
   return (
-    <div id="pdf_rendering_viewport" className="flex-1 flex flex-col justify-between bg-[#0b141a] relative overflow-hidden min-h-0 w-full">
+    <div id="pdf_rendering_viewport" className="flex-1 flex flex-col bg-[#0b141a] relative overflow-hidden min-h-0 w-full">
       
       {/* Zoom and Document Actions Ribbons */}
-      <div className="bg-[#111b21] py-1.5 px-3 flex items-center justify-between border-b border-white/5 text-whatsapp-text-secondary select-none text-xs shrink-0">
-        <div className="flex items-center gap-1 sm:gap-2">
+      <div className="bg-[#111b21] py-2 px-4 flex items-center justify-between border-b border-white/5 text-whatsapp-text-secondary select-none text-xs shrink-0 z-10 shadow-md">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <button
             onClick={handleZoomOut}
             disabled={zoom <= 0.7}
             className="p-1 cursor-pointer disabled:opacity-40 hover:text-white transition-colors"
             title="Diminuir Zoom"
           >
-            <ZoomOut className="w-4 h-4" />
+            <ZoomOut className="w-4.5 h-4.5" />
           </button>
-          <span className="font-mono text-[11px] min-w-[34px] text-center">
+          <span className="font-mono text-[13px] min-w-[36px] text-center text-white font-medium">
             {Math.round(zoom * 100)}%
           </span>
           <button
@@ -222,34 +145,32 @@ export function LocalPdfViewer({ url, title, pagesCount, onClose }: LocalPdfView
             className="p-1 cursor-pointer disabled:opacity-40 hover:text-white transition-colors"
             title="Aumentar Zoom"
           >
-            <ZoomIn className="w-4 h-4" />
+            <ZoomIn className="w-4.5 h-4.5" />
           </button>
           {zoom !== 1.0 && (
             <button
               onClick={handleResetZoom}
-              className="px-1.5 py-0.5 ml-1 rounded bg-[#202c33] text-[9px] hover:text-white hover:bg-[#2a3942] cursor-pointer"
+              className="px-2 py-0.5 ml-1.5 rounded bg-[#202c33] text-[9.5px] text-whatsapp-green font-bold hover:text-white hover:bg-[#2a3942] cursor-pointer"
             >
-              Ajustar
+              Recalibrar
             </button>
           )}
         </div>
 
-        <div className="text-[11px] font-medium text-whatsapp-text-secondary">
-          Arraste de lado para virar a página
+        <div className="text-[11px] font-semibold text-whatsapp-text-secondary bg-[#202c33] px-2.5 py-1 rounded-md">
+          Rolar para baixo • <span className="text-white font-bold">{numPages}</span> págs
         </div>
       </div>
 
-      {/* Main Document Canvas Window */}
+      {/* Main Document Canvas Scrollable Window */}
       <div 
         ref={containerRef}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-        className="flex-1 overflow-x-auto overflow-y-auto p-2 sm:p-4 flex items-start justify-center relative custom-scrollbar bg-[#0b141a]"
+        className="flex-1 overflow-x-auto overflow-y-auto px-2 sm:px-4 py-2 relative custom-scrollbar bg-[#0b141a] scroll-smooth"
       >
         {loading && (
-          <div className="absolute inset-0 bg-[#0b141a] flex flex-col items-center justify-center gap-2 z-20">
-            <Loader2 className="w-8 h-8 text-[#00a884] animate-spin" />
-            <p className="text-xs text-whatsapp-text-secondary">Decodificando PDF livro...</p>
+          <div className="absolute inset-0 bg-[#0b141a] flex flex-col items-center justify-center gap-2.5 z-20">
+            <Loader2 className="w-9 h-9 text-[#00a884] animate-spin" />
+            <p className="text-xs text-whatsapp-text-secondary">Decodificando livro digital...</p>
           </div>
         )}
 
@@ -260,53 +181,189 @@ export function LocalPdfViewer({ url, title, pagesCount, onClose }: LocalPdfView
               href={url}
               target="_blank"
               rel="noreferrer"
-              className="bg-[#00a884] text-white font-bold text-xs px-4 py-2 rounded-lg hover:bg-[#00bfa5] transition"
+              className="bg-[#00a884] text-white font-bold text-xs px-5 py-2.5 rounded-lg hover:bg-[#00bfa5] transition shadow-md"
             >
-              Baixar PDF Localmente ↙
+              Baixar e Abrir Manualmente ↙
             </a>
           </div>
         )}
 
-        <div className="relative shadow-lg max-w-full">
-          <canvas 
-            ref={canvasRef} 
-            className="bg-white rounded shadow-md transition-opacity duration-150"
-            style={{ opacity: rendering && !canvasRef.current ? 0.3 : 1 }}
-          />
-          {rendering && (
-            <div className="absolute top-2 right-2 bg-black/60 rounded px-1.5 py-0.5 text-[10px] text-white flex items-center gap-1">
-              <Loader2 className="w-3 h-3 animate-spin text-[#00a884]" />
-              Relaçando...
-            </div>
-          )}
+        {/* Scrollable multi-page document container */}
+        <div id="pdf-scrollable-pages" className="flex flex-col gap-4 py-2">
+          {!loading && !renderError && pdf && pagesArray.map((pageNum) => (
+            <PdfPage
+              key={pageNum}
+              pdf={pdf}
+              pageNum={pageNum}
+              zoom={zoom}
+              containerWidth={containerWidth}
+              aspectRatio={aspectRatio}
+            />
+          ))}
         </div>
       </div>
+    </div>
+  );
+}
 
-      {/* Navigation and Bottom Paginations Footer */}
-      <div className="bg-[#111b21] border-t border-white/5 py-3 px-4 shrink-0 flex items-center justify-between select-none">
-        <button
-          onClick={handlePrevPage}
-          disabled={currentPage === 1 || loading}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#202c33] disabled:opacity-30 hover:bg-[#2a3942] disabled:hover:bg-[#202c33] text-sm text-white font-bold transition-all cursor-pointer disabled:cursor-not-allowed"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          <span>Voltar</span>
-        </button>
+interface PdfPageProps {
+  pdf: any;
+  pageNum: number;
+  zoom: number;
+  containerWidth: number;
+  aspectRatio: number;
+}
 
-        <span className="text-xs sm:text-sm text-whatsapp-text-secondary font-semibold">
-          Página <span className="text-white font-bold">{currentPage}</span> de <span className="text-white">{numPages}</span>
-        </span>
+const PdfPage: React.FC<PdfPageProps> = ({ pdf, pageNum, zoom, containerWidth, aspectRatio }) => {
+  const [isVisible, setIsVisible] = useState<boolean>(false);
+  const [rendering, setRendering] = useState<boolean>(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const pageRef = useRef<HTMLDivElement>(null);
+  const renderTaskRef = useRef<any>(null);
 
-        <button
-          onClick={handleNextPage}
-          disabled={currentPage === numPages || loading}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#00a884] disabled:opacity-30 hover:bg-[#00bfa5] disabled:hover:bg-[#00a884] text-sm text-white font-bold transition-all cursor-pointer disabled:cursor-not-allowed"
-        >
-          <span>Avançar</span>
-          <ChevronRight className="w-4 h-4" />
-        </button>
-      </div>
+  // IntersectionObserver to render/unrender pages dynamically (extremely efficient memory usage on smartphones)
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setIsVisible(true);
+          } else {
+            setIsVisible(false);
+          }
+        });
+      },
+      {
+        root: null, // viewport/container
+        rootMargin: '500px 0px 500px 0px', // start rendering pages 500px before viewport
+        threshold: 0.05,
+      }
+    );
 
+    if (pageRef.current) {
+      observer.observe(pageRef.current);
+    }
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  // PDF Page Renderer
+  useEffect(() => {
+    if (!isVisible || !pdf) {
+      // Cancel pending rendering when pages walk out of view/scope
+      if (renderTaskRef.current) {
+        renderTaskRef.current.cancel();
+        renderTaskRef.current = null;
+      }
+      return;
+    }
+
+    let isMounted = true;
+
+    async function renderCanvas() {
+      if (!canvasRef.current) return;
+
+      try {
+        setRendering(true);
+
+        const page = await pdf.getPage(pageNum);
+        if (!isMounted || !canvasRef.current) return;
+
+        const canvas = canvasRef.current;
+        const context = canvas.getContext('2d');
+        if (!context) return;
+
+        const unscaledViewport = page.getViewport({ scale: 1.0 });
+        const fitScale = containerWidth / unscaledViewport.width;
+        const viewport = page.getViewport({ scale: fitScale * zoom });
+
+        // Use standard devicePixelRatio capped at 2x for visual sharpness and memory safety
+        const dpr = Math.min(2, window.devicePixelRatio || 1);
+        canvas.width = viewport.width * dpr;
+        canvas.height = viewport.height * dpr;
+
+        canvas.style.width = '100%';
+        canvas.style.maxWidth = `${viewport.width}px`;
+        canvas.style.height = 'auto';
+
+        context.resetTransform();
+        context.scale(dpr, dpr);
+
+        const renderContext = {
+          canvasContext: context,
+          viewport: viewport,
+        };
+
+        if (renderTaskRef.current) {
+          renderTaskRef.current.cancel();
+        }
+
+        const renderTask = page.render(renderContext);
+        renderTaskRef.current = renderTask;
+
+        await renderTask.promise;
+        if (isMounted) {
+          setRendering(false);
+        }
+      } catch (err: any) {
+        if (err.name !== 'RenderingCancelledException') {
+          console.error(`Page ${pageNum} render task exception:`, err);
+        }
+        if (isMounted) {
+          setRendering(false);
+        }
+      }
+    }
+
+    renderCanvas();
+
+    return () => {
+      isMounted = false;
+      if (renderTaskRef.current) {
+        renderTaskRef.current.cancel();
+        renderTaskRef.current = null;
+      }
+    };
+  }, [isVisible, pdf, pageNum, zoom, containerWidth]);
+
+  const heightValue = containerWidth * aspectRatio;
+
+  return (
+    <div 
+      ref={pageRef}
+      style={{ 
+        width: '100%', 
+        maxWidth: `${containerWidth * zoom}px`, 
+        minHeight: isVisible ? 'auto' : `${heightValue * zoom}px` 
+      }}
+      className="relative bg-[#111b21]/45 rounded-lg shadow-xl mx-auto flex items-center justify-center border border-white/5 overflow-hidden transition-all duration-300"
+    >
+      {!isVisible ? (
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-[11px] text-[#8696a0]/60 gap-1 select-none">
+          <Loader2 className="w-4 h-4 animate-spin text-[#8696a0]/30" />
+          <span>Sincronizando página {pageNum}...</span>
+        </div>
+      ) : (
+        <canvas 
+          ref={canvasRef} 
+          className="bg-white rounded-lg shadow-md transition-opacity duration-200 block"
+          style={{ opacity: rendering ? 0.8 : 1 }}
+        />
+      )}
+
+      {rendering && isVisible && (
+        <div className="absolute top-2 right-2 bg-black/60 backdrop-blur rounded px-2 py-0.5 text-[9px] text-[#00a884] flex items-center gap-1 shadow select-none">
+          <Loader2 className="w-2.5 h-2.5 animate-spin" />
+          <span>Processando...</span>
+        </div>
+      )}
+      
+      {/* Tiny subtle page number watermark inside PDF pages list for user comfort */}
+      <span className="absolute bottom-2 left-2 px-1.5 py-0.5 rounded bg-black/40 text-[9px] font-mono text-white/50 select-none">
+        pág. {pageNum}
+      </span>
     </div>
   );
 }
