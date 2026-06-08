@@ -7,7 +7,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Check, Send, User, ChevronRight, Star, Video, Phone, MoreVertical, Plus, Smile, Info, Play, Pause, Mic, X } from 'lucide-react';
 import { ChatMessage, Option, PdfItem } from './types';
-import { INITIAL_MESSAGES, FUNNEL_STEPS, SERGIO_AVATAR, CHECKOUT_URL } from './constants';
+import { INITIAL_MESSAGES, FUNNEL_STEPS, SERGIO_AVATAR, CHECKOUT_URL, CHECKOUT_URL_990, CHECKOUT_URL_2700, CHECKOUT_URL_4700 } from './constants';
 
 const WhatsAppAudio: React.FC<{ 
   id: string;
@@ -90,6 +90,15 @@ const WhatsAppAudio: React.FC<{
       onPause();
     } else {
       onPlay();
+      audioRef.current.play()
+        .then(() => {
+          setIsPlaying(true);
+          setError(false);
+        })
+        .catch(err => {
+          console.error("Erro ao tocar áudio:", err);
+          setError(true);
+        });
     }
   };
 
@@ -137,8 +146,6 @@ const WhatsAppAudio: React.FC<{
     4, 8, 12, 6, 10, 14, 8, 4, 6, 12, 10, 8, 4, 10, 14, 12, 8, 6, 4, 8, 12, 10, 6, 8, 14, 12, 8, 4, 6, 10, 8, 12, 6, 10, 14
   ];
 
-  const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
   return (
     <div className="flex items-center gap-2 py-2 px-1 min-w-[280px] relative">
       <audio 
@@ -153,7 +160,7 @@ const WhatsAppAudio: React.FC<{
           console.error(`Não foi possível carregar o áudio em: ${url}`);
           setError(true);
         }}
-        preload="metadata"
+        preload="auto"
       />
       
       <button 
@@ -198,11 +205,11 @@ const WhatsAppAudio: React.FC<{
         )}
         <div className="flex justify-between items-center px-1 mt-1">
           <span className="text-[11px] text-whatsapp-text-secondary select-none">
-            {isPlaying || progress > 0 ? currentTime : displayedDuration}
+            {currentTime}
           </span>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-whatsapp-text-secondary/60 ml-1 select-none">
-              {now}
+            <span className="text-[11px] text-whatsapp-text-secondary select-none">
+              {duration}
             </span>
           </div>
         </div>
@@ -234,19 +241,13 @@ export default function App() {
 
   const handleClosePdf = () => {
     setPreviewPdf(null);
-    if (!contributionTriggered) {
-      setContributionTriggered(true);
-      addNextMessages(FUNNEL_STEPS.contribution_appeal(''));
-    }
   };
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    // Scroll auto-scroll disabled as requested by user
   };
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, typingStatus]);
+  // Auto-scroll on messages or typing updates is disabled to let the lead scroll the funnel manually.
 
   useEffect(() => {
     if (initialized.current) return;
@@ -322,7 +323,25 @@ export default function App() {
       addNextMessages(FUNNEL_STEPS.step3(''));
     } else if (option.value === 'doubt') {
       window.location.href = "https://wa.me/SEU_NUMERO_AQUI";
+    } else if (option.value === 'checkout_990') {
+      if (typeof window !== 'undefined' && (window as any).fbq) {
+        (window as any).fbq('track', 'InitiateCheckout', { value: 9.90, currency: 'BRL', content_name: 'Contribuição R$9,90' });
+      }
+      window.location.href = CHECKOUT_URL_990;
+    } else if (option.value === 'checkout_2700') {
+      if (typeof window !== 'undefined' && (window as any).fbq) {
+        (window as any).fbq('track', 'InitiateCheckout', { value: 27.00, currency: 'BRL', content_name: 'Contribuição R$27,00' });
+      }
+      window.location.href = CHECKOUT_URL_2700;
+    } else if (option.value === 'checkout_4700') {
+      if (typeof window !== 'undefined' && (window as any).fbq) {
+        (window as any).fbq('track', 'InitiateCheckout', { value: 47.00, currency: 'BRL', content_name: 'Contribuição R$47,00' });
+      }
+      window.location.href = CHECKOUT_URL_4700;
     } else if (option.value === 'checkout') {
+      if (typeof window !== 'undefined' && (window as any).fbq) {
+        (window as any).fbq('track', 'InitiateCheckout', { value: 27.00, currency: 'BRL', content_name: 'Contribuição R$27,00' });
+      }
       window.location.href = CHECKOUT_URL;
     }
   };
@@ -332,7 +351,7 @@ export default function App() {
       const currentIndex = currentMessages.findIndex(m => m.id === endedId);
       if (currentIndex !== -1) {
         const nextAudioMessage = currentMessages.slice(currentIndex + 1).find(m => m.type === 'audio');
-        if (nextAudioMessage) {
+        if (nextAudioMessage && nextAudioMessage.id !== 'audio-3') {
           setTimeout(() => {
             setCurrentlyPlayingAudioId(nextAudioMessage.id);
           }, 100);
