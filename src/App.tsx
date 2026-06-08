@@ -518,7 +518,7 @@ export default function App() {
                 )}
                 
                 <iframe 
-                  src={`https://docs.google.com/viewer?url=${encodeURIComponent(window.location.origin + previewPdf.filename)}&embedded=true`}
+                  src={`${previewPdf.filename}#toolbar=0&navpanes=0&view=FitH`}
                   className="w-full h-full border-none bg-[#0b141a] flex-grow"
                   title={previewPdf.title}
                   onLoad={() => setPdfLoading(false)}
