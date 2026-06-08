@@ -235,19 +235,18 @@ export default function App() {
   const [nameInput, setNameInput] = useState('');
   const [currentStep, setCurrentStep] = useState<string>('start');
   const [previewPdf, setPreviewPdf] = useState<PdfItem | null>(null);
-  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdf1Loaded, setPdf1Loaded] = useState(false);
+  const [pdf2Loaded, setPdf2Loaded] = useState(false);
   const [contributionTriggered, setContributionTriggered] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const initialized = useRef(false);
 
   const handleClosePdf = () => {
     setPreviewPdf(null);
-    setPdfLoading(false);
   };
 
   const handlePdfView = (pdf: PdfItem) => {
     setPreviewPdf(pdf);
-    setPdfLoading(true);
   };
 
   const scrollToBottom = () => {
@@ -471,75 +470,89 @@ export default function App() {
         </div>
       </footer>
 
-      {/* PDF Visualizer Overlay */}
-      <AnimatePresence>
-        {previewPdf && (
-          <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-0 sm:p-4 animate-fadeIn">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.25, ease: "easeOut" }}
-              className="bg-[#1f2c34] rounded-none sm:rounded-2xl w-full sm:max-w-4xl h-full sm:h-[85vh] flex flex-col overflow-hidden shadow-2xl border-none sm:border border-white/10"
+      {/* PDF Visualizer Overlay - Permanently Rendered and Preloaded */}
+      <div 
+        className={`fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-0 sm:p-4 transition-all duration-300 ${
+          previewPdf ? 'opacity-100 pointer-events-auto visible' : 'opacity-0 pointer-events-none invisible'
+        }`}
+      >
+        <div 
+          className={`bg-[#1f2c34] rounded-none sm:rounded-2xl w-full sm:max-w-4xl h-full sm:h-[85vh] flex flex-col overflow-hidden shadow-2xl border-none sm:border border-white/10 transition-all duration-300 transform ${
+            previewPdf ? 'scale-100' : 'scale-95'
+          }`}
+        >
+          {/* Modal Header */}
+          <div className="bg-[#111b21] p-3 sm:p-4 flex items-center justify-between border-b border-white/10 shrink-0">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="p-2.5 bg-red-500/10 text-red-500 rounded-lg shrink-0">
+                <svg className="w-5 h-5 text-red-500 fill-current" viewBox="0 0 24 24">
+                  <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2m-7 6c.55 0 1 .45 1 1s-.45 1-1 1s-1-.45-1-1s.45-1 1-1m-4 5h8v2H8v-2m0-3h8v2H8V11Z" />
+                </svg>
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-white font-bold text-sm sm:text-base leading-tight truncate">
+                  {previewPdf ? previewPdf.title : "Carregando material..."}
+                </h3>
+                <span className="text-[11px] sm:text-xs text-whatsapp-text-secondary font-medium">
+                  {previewPdf ? `${previewPdf.pages} páginas • PDF Leitor Integrado` : "Livro Digital"}
+                </span>
+              </div>
+            </div>
+            <button 
+              onClick={handleClosePdf}
+              className="p-2 hover:bg-white/10 rounded-full transition-colors text-whatsapp-text-secondary hover:text-white cursor-pointer hover:scale-105 active:scale-95 shrink-0"
+              aria-label="Fechar PDF"
             >
-              {/* Modal Header */}
-              <div className="bg-[#111b21] p-3 sm:p-4 flex items-center justify-between border-b border-white/10 shrink-0">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="p-2.5 bg-red-500/10 text-red-500 rounded-lg shrink-0">
-                    <svg className="w-5 h-5 text-red-500 fill-current" viewBox="0 0 24 24">
-                      <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2m-7 6c.55 0 1 .45 1 1s-.45 1-1 1s-1-.45-1-1s.45-1 1-1m-4 5h8v2H8v-2m0-3h8v2H8V11Z" />
-                    </svg>
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="text-white font-bold text-sm sm:text-base leading-tight truncate">
-                      {previewPdf.title}
-                    </h3>
-                    <span className="text-[11px] sm:text-xs text-whatsapp-text-secondary font-medium">
-                      {previewPdf.pages} páginas • PDF Leitor Integrado
-                    </span>
-                  </div>
-                </div>
-                <button 
-                  onClick={handleClosePdf}
-                  className="p-2 hover:bg-white/10 rounded-full transition-colors text-whatsapp-text-secondary hover:text-white cursor-pointer hover:scale-105 active:scale-95 shrink-0"
-                  aria-label="Fechar PDF"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-
-              {/* PDF Embed / View Area */}
-              <div className="flex-1 bg-[#0b141a] relative overflow-hidden flex flex-col min-h-0">
-                {pdfLoading && (
-                  <div className="absolute inset-0 bg-[#0b141a]/95 flex flex-col items-center justify-center gap-3 z-40 pointer-events-none">
-                    <div className="w-10 h-10 border-4 border-whatsapp-green border-t-transparent rounded-full animate-spin"></div>
-                    <p className="text-sm text-whatsapp-text-secondary animate-pulse text-center">Carregando livro digital...</p>
-                  </div>
-                )}
-                
-                <iframe 
-                  src={`${previewPdf.filename}#toolbar=0&navpanes=0&view=FitH`}
-                  className="w-full h-full border-none bg-[#0b141a] flex-grow"
-                  title={previewPdf.title}
-                  onLoad={() => setPdfLoading(false)}
-                />
-                
-                {/* Elder Helpful Guidance Bar */}
-                <div className="bg-[#111b21] p-3 text-center text-[12px] text-whatsapp-text-secondary select-none shrink-0 border-t border-white/5 flex items-center justify-center gap-4">
-                  <span className="font-medium">Deslize para ler os materiais</span>
-                  <span className="text-white/20 select-none">•</span>
-                  <button 
-                    onClick={handleClosePdf}
-                    className="text-whatsapp-green font-bold hover:underline cursor-pointer"
-                  >
-                    Voltar para Conversa
-                  </button>
-                </div>
-              </div>
-            </motion.div>
+              <X className="w-6 h-6" />
+            </button>
           </div>
-        )}
-      </AnimatePresence>
+
+          {/* PDF Embed / View Area */}
+          <div className="flex-1 bg-[#0b141a] relative overflow-hidden flex flex-col min-h-0">
+            
+            {/* Fallback loader spinner only visible if the PDF hasn't fully loaded in background yet */}
+            {previewPdf && (
+              ((previewPdf.filename === '/GuiaCriaçãoLucrativa 1.pdf' && !pdf1Loaded) ||
+               (previewPdf.filename === '/GuiaCriaçãoLucrativa 2.pdf' && !pdf2Loaded)) && (
+                <div className="absolute inset-0 bg-[#0b141a]/95 flex flex-col items-center justify-center gap-3 z-40 pointer-events-none">
+                  <div className="w-10 h-10 border-4 border-whatsapp-green border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-sm text-whatsapp-text-secondary animate-pulse text-center">Carregando livro digital...</p>
+                </div>
+              )
+            )}
+            
+            <iframe 
+              src="/GuiaCriaçãoLucrativa 1.pdf#toolbar=0&navpanes=0&view=Fit"
+              className={`pdf-iframe border-none bg-[#0b141a] ${
+                previewPdf?.filename === '/GuiaCriaçãoLucrativa 1.pdf' ? 'block' : 'hidden'
+              }`}
+              title="Guia de Criação Lucrativa Vol. 1"
+              onLoad={() => setPdf1Loaded(true)}
+            />
+
+            <iframe 
+              src="/GuiaCriaçãoLucrativa 2.pdf#toolbar=0&navpanes=0&view=Fit"
+              className={`pdf-iframe border-none bg-[#0b141a] ${
+                previewPdf?.filename === '/GuiaCriaçãoLucrativa 2.pdf' ? 'block' : 'hidden'
+              }`}
+              title="Guia Complementar - Galinheiro Barato & Manejos"
+              onLoad={() => setPdf2Loaded(true)}
+            />
+            
+            {/* Elder Helpful Guidance Bar */}
+            <div className="bg-[#111b21] p-3 text-center text-[12px] text-whatsapp-text-secondary select-none shrink-0 border-t border-white/5 flex items-center justify-center gap-4">
+              <span className="font-medium">Deslize para ler os materiais</span>
+              <span className="text-white/20 select-none">•</span>
+              <button 
+                onClick={handleClosePdf}
+                className="text-whatsapp-green font-bold hover:underline cursor-pointer"
+              >
+                Voltar para Conversa
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
