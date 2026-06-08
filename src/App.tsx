@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Check, Send, User, ChevronRight, Star, Video, Phone, MoreVertical, Plus, Smile, Info, Play, Pause, Mic, X } from 'lucide-react';
 import { ChatMessage, Option, PdfItem } from './types';
 import { INITIAL_MESSAGES, FUNNEL_STEPS, SERGIO_AVATAR, CHECKOUT_URL, CHECKOUT_URL_990, CHECKOUT_URL_2700, CHECKOUT_URL_4700 } from './constants';
+import { DigitalBookReader } from './components/DigitalBookReader';
 
 const WhatsAppAudio: React.FC<{ 
   id: string;
@@ -474,68 +475,15 @@ export default function App() {
       {/* PDF Visualizer Overlay */}
       <AnimatePresence>
         {previewPdf && (
-          <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-0 sm:p-4 animate-fadeIn">
+          <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-0 animate-fadeIn">
             <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.25, ease: "easeOut" }}
-              className="bg-[#1f2c34] rounded-none sm:rounded-2xl w-full sm:max-w-4xl h-full sm:h-[85vh] flex flex-col overflow-hidden shadow-2xl border-none sm:border border-white/10"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 30 }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
+              className="w-full h-full sm:max-w-4xl sm:h-[92vh] sm:rounded-2xl overflow-hidden shadow-2xl bg-[#0b141a]"
             >
-              {/* Modal Header */}
-              <div className="bg-[#111b21] p-3 sm:p-4 flex items-center justify-between border-b border-white/10 shrink-0">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="p-2.5 bg-red-500/10 text-red-500 rounded-lg shrink-0">
-                    <svg className="w-5 h-5 text-red-500 fill-current" viewBox="0 0 24 24">
-                      <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2m-7 6c.55 0 1 .45 1 1s-.45 1-1 1s-1-.45-1-1s.45-1 1-1m-4 5h8v2H8v-2m0-3h8v2H8V11Z" />
-                    </svg>
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="text-white font-bold text-sm sm:text-base leading-tight truncate">
-                      {previewPdf.title}
-                    </h3>
-                    <span className="text-[11px] sm:text-xs text-whatsapp-text-secondary font-medium">
-                      {previewPdf.pages} páginas • PDF Leitor Integrado
-                    </span>
-                  </div>
-                </div>
-                <button 
-                  onClick={handleClosePdf}
-                  className="p-2 hover:bg-white/10 rounded-full transition-colors text-whatsapp-text-secondary hover:text-white cursor-pointer hover:scale-105 active:scale-95 shrink-0"
-                  aria-label="Fechar PDF"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-
-              {/* PDF Embed / View Area */}
-              <div className="flex-1 bg-[#0b141a] relative overflow-hidden flex flex-col min-h-0">
-                {pdfLoading && (
-                  <div className="absolute inset-0 bg-[#0b141a]/95 flex flex-col items-center justify-center gap-3 z-40 pointer-events-none">
-                    <div className="w-10 h-10 border-4 border-whatsapp-green border-t-transparent rounded-full animate-spin"></div>
-                    <p className="text-sm text-whatsapp-text-secondary animate-pulse text-center">Carregando livro digital...</p>
-                  </div>
-                )}
-                
-                <iframe 
-                  src={`${previewPdf.filename}#toolbar=0&navpanes=0&view=FitH`}
-                  className="w-full h-full border-none bg-[#0b141a] flex-grow"
-                  title={previewPdf.title}
-                  onLoad={() => setPdfLoading(false)}
-                />
-                
-                {/* Elder Helpful Guidance Bar */}
-                <div className="bg-[#111b21] p-3 text-center text-[12px] text-whatsapp-text-secondary select-none shrink-0 border-t border-white/5 flex items-center justify-center gap-4">
-                  <span className="font-medium">Deslize para ler os materiais</span>
-                  <span className="text-white/20 select-none">•</span>
-                  <button 
-                    onClick={handleClosePdf}
-                    className="text-whatsapp-green font-bold hover:underline cursor-pointer"
-                  >
-                    Voltar para Conversa
-                  </button>
-                </div>
-              </div>
+              <DigitalBookReader pdf={previewPdf} onClose={handleClosePdf} />
             </motion.div>
           </div>
         )}
