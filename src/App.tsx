@@ -235,12 +235,19 @@ export default function App() {
   const [nameInput, setNameInput] = useState('');
   const [currentStep, setCurrentStep] = useState<string>('start');
   const [previewPdf, setPreviewPdf] = useState<PdfItem | null>(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
   const [contributionTriggered, setContributionTriggered] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const initialized = useRef(false);
 
   const handleClosePdf = () => {
     setPreviewPdf(null);
+    setPdfLoading(false);
+  };
+
+  const handlePdfView = (pdf: PdfItem) => {
+    setPreviewPdf(pdf);
+    setPdfLoading(true);
   };
 
   const scrollToBottom = () => {
@@ -417,7 +424,7 @@ export default function App() {
                   onAudioPlay={(id) => setCurrentlyPlayingAudioId(id)}
                   onAudioPause={() => setCurrentlyPlayingAudioId(null)}
                   onAudioEnded={handleAudioEnded}
-                  onPdfView={(pdf) => setPreviewPdf(pdf)}
+                  onPdfView={handlePdfView}
                 />
               );
             })}
@@ -473,7 +480,7 @@ export default function App() {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.25, ease: "easeOut" }}
-              className="bg-[#1f2c34] rounded-2xl w-full max-w-4xl h-[90vh] md:h-[85vh] flex flex-col overflow-hidden shadow-2xl border border-white/10"
+              className="bg-[#1f2c34] rounded-2xl w-[96%] sm:w-full max-w-4xl h-[92dvh] sm:h-[85vh] flex flex-col overflow-hidden shadow-2xl border border-white/10"
             >
               {/* Modal Header */}
               <div className="bg-[#111b21] p-3 sm:p-4 flex items-center justify-between border-b border-white/10 shrink-0">
@@ -487,8 +494,8 @@ export default function App() {
                     <h3 className="text-white font-bold text-sm sm:text-base leading-tight truncate">
                       {previewPdf.title}
                     </h3>
-                    <span className="text-[11px] sm:text-xs text-whatsapp-text-secondary">
-                      {previewPdf.pages} páginas • Visualização do WhatsApp
+                    <span className="text-[11px] sm:text-xs text-whatsapp-text-secondary font-medium">
+                      {previewPdf.pages} páginas • PDF Leitor Integrado
                     </span>
                   </div>
                 </div>
@@ -501,23 +508,47 @@ export default function App() {
                 </button>
               </div>
 
+              {/* Responsive Zoom Fullscreen Banner (Amazing for Mobile Leads) */}
+              <div className="bg-[#128c7e] text-white px-3 py-2 flex items-center justify-between gap-3 shadow-md shrink-0 select-none">
+                <span className="text-[11px] sm:text-xs font-semibold leading-tight flex items-center gap-1.5 truncate">
+                  <span>📱</span>
+                  <span>Celular? Abra em tela cheia para ler com zoom livre:</span>
+                </span>
+                <a 
+                  href={previewPdf.filename} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="bg-white text-[#128c7e] hover:bg-white/95 active:scale-95 font-bold py-1 px-2.5 rounded text-[11px] flex items-center gap-0.5 transition-all shadow-sm shrink-0 whitespace-nowrap uppercase tracking-wider"
+                >
+                  <span>Abrir Tela Cheia ↗</span>
+                </a>
+              </div>
+
               {/* PDF Embed / View Area */}
-              <div className="flex-1 bg-[#0b141a] relative overflow-hidden flex flex-col">
+              <div className="flex-1 bg-[#0b141a] relative overflow-hidden flex flex-col min-h-0">
+                {pdfLoading && (
+                  <div className="absolute inset-0 bg-[#0b141a]/95 flex flex-col items-center justify-center gap-3 z-35 pointer-events-none">
+                    <div className="w-10 h-10 border-4 border-whatsapp-green border-t-transparent rounded-full animate-spin"></div>
+                    <p className="text-sm text-whatsapp-text-secondary animate-pulse text-center">Carregando livro digital...</p>
+                  </div>
+                )}
+                
                 <iframe 
-                  src={`${previewPdf.filename}#toolbar=0&navpanes=0&view=FitH`}
-                  className="w-full h-full border-none"
+                  src={`${previewPdf.filename}#toolbar=0&navpanes=0&view=Fit`}
+                  className="w-full h-full border-none bg-[#0b141a]"
                   title={previewPdf.title}
+                  onLoad={() => setPdfLoading(false)}
                 />
                 
                 {/* Elder Helpful Guidance Bar */}
                 <div className="bg-[#111b21] p-2.5 text-center text-[12px] text-whatsapp-text-secondary select-none shrink-0 border-t border-white/5 flex items-center justify-center gap-4">
-                  <span className="font-medium">Role ou deslize para ler o livro</span>
+                  <span className="font-medium">Deslize para ler os materiais</span>
                   <span className="text-white/20 select-none">•</span>
                   <button 
                     onClick={handleClosePdf}
                     className="text-whatsapp-green font-bold hover:underline cursor-pointer"
                   >
-                    Clique aqui para fechar e voltar
+                    Voltar para Conversa
                   </button>
                 </div>
               </div>
