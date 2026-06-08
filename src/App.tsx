@@ -474,13 +474,13 @@ export default function App() {
       {/* PDF Visualizer Overlay */}
       <AnimatePresence>
         {previewPdf && (
-          <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4 animate-fadeIn">
+          <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-0 sm:p-4 animate-fadeIn">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.25, ease: "easeOut" }}
-              className="bg-[#1f2c34] rounded-2xl w-[96%] sm:w-full max-w-4xl h-[92dvh] sm:h-[85vh] flex flex-col overflow-hidden shadow-2xl border border-white/10"
+              className="bg-[#1f2c34] rounded-none sm:rounded-2xl w-full sm:max-w-4xl h-full sm:h-[85vh] flex flex-col overflow-hidden shadow-2xl border-none sm:border border-white/10"
             >
               {/* Modal Header */}
               <div className="bg-[#111b21] p-3 sm:p-4 flex items-center justify-between border-b border-white/10 shrink-0">
@@ -508,40 +508,24 @@ export default function App() {
                 </button>
               </div>
 
-              {/* Responsive Zoom Fullscreen Banner (Amazing for Mobile Leads) */}
-              <div className="bg-[#128c7e] text-white px-3 py-2 flex items-center justify-between gap-3 shadow-md shrink-0 select-none">
-                <span className="text-[11px] sm:text-xs font-semibold leading-tight flex items-center gap-1.5 truncate">
-                  <span>📱</span>
-                  <span>Celular? Abra em tela cheia para ler com zoom livre:</span>
-                </span>
-                <a 
-                  href={previewPdf.filename} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="bg-white text-[#128c7e] hover:bg-white/95 active:scale-95 font-bold py-1 px-2.5 rounded text-[11px] flex items-center gap-0.5 transition-all shadow-sm shrink-0 whitespace-nowrap uppercase tracking-wider"
-                >
-                  <span>Abrir Tela Cheia ↗</span>
-                </a>
-              </div>
-
               {/* PDF Embed / View Area */}
               <div className="flex-1 bg-[#0b141a] relative overflow-hidden flex flex-col min-h-0">
                 {pdfLoading && (
-                  <div className="absolute inset-0 bg-[#0b141a]/95 flex flex-col items-center justify-center gap-3 z-35 pointer-events-none">
+                  <div className="absolute inset-0 bg-[#0b141a]/95 flex flex-col items-center justify-center gap-3 z-40 pointer-events-none">
                     <div className="w-10 h-10 border-4 border-whatsapp-green border-t-transparent rounded-full animate-spin"></div>
                     <p className="text-sm text-whatsapp-text-secondary animate-pulse text-center">Carregando livro digital...</p>
                   </div>
                 )}
                 
                 <iframe 
-                  src={`${previewPdf.filename}#toolbar=0&navpanes=0&view=Fit`}
-                  className="w-full h-full border-none bg-[#0b141a]"
+                  src={`https://docs.google.com/viewer?url=${encodeURIComponent(window.location.origin + previewPdf.filename)}&embedded=true`}
+                  className="w-full h-full border-none bg-[#0b141a] flex-grow"
                   title={previewPdf.title}
                   onLoad={() => setPdfLoading(false)}
                 />
                 
                 {/* Elder Helpful Guidance Bar */}
-                <div className="bg-[#111b21] p-2.5 text-center text-[12px] text-whatsapp-text-secondary select-none shrink-0 border-t border-white/5 flex items-center justify-center gap-4">
+                <div className="bg-[#111b21] p-3 text-center text-[12px] text-whatsapp-text-secondary select-none shrink-0 border-t border-white/5 flex items-center justify-center gap-4">
                   <span className="font-medium">Deslize para ler os materiais</span>
                   <span className="text-white/20 select-none">•</span>
                   <button 
