@@ -79,28 +79,3 @@
 .custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
-
-/* Custom mobile PDF scales to prevent native iOS / Chrome clip and zoom failures */
-@media (max-width: 480px) {
-  .pdf-iframe {
-    width: 200% !important;
-    height: 200% !important;
-    transform: scale(0.5) !important;
-    transform-origin: top left !important;
-  }
-}
-@media (min-width: 481px) and (max-width: 768px) {
-  .pdf-iframe {
-    width: 150% !important;
-    height: 150% !important;
-    transform: scale(0.666) !important;
-    transform-origin: top left !important;
-  }
-}
-@media (min-width: 769px) {
-  .pdf-iframe {
-    width: 100% !important;
-    height: 100% !important;
-    transform: none !important;
-  }
-}
